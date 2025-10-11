@@ -21,7 +21,6 @@ CLIENT_COMPLEXITY_CHECKLIST = {
 }
 
 
-
 @app.post("/clients")
 def create_client(client_data: ClientCreate):
     client = Client(**client_data.model_dump())
