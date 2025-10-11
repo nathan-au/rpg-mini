@@ -18,3 +18,9 @@ class ChecklistItemDocKindEnum(str, Enum):
 class ChecklistItemStatusEnum(str, Enum):
     missing = "missing"
     received = "received"
+
+class DocumentDocKindEnum(str, Enum):
+    T4 = "T4"
+    receipt = "receipt"
+    id = "id"
+    unknown = "unknown"

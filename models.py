@@ -1,6 +1,7 @@
+from pydantic import BaseModel
 from datetime import datetime
 from sqlmodel import SQLModel, Field
-from enums import ClientComplexityEnum, IntakeStatusEnum, ChecklistItemDocKindEnum, ChecklistItemStatusEnum
+from enums import ClientComplexityEnum, IntakeStatusEnum, ChecklistItemDocKindEnum, ChecklistItemStatusEnum, DocumentDocKindEnum
 
 
 class Client(SQLModel, table = True):
@@ -10,6 +11,11 @@ class Client(SQLModel, table = True):
     complexity: ClientComplexityEnum
     created_at: datetime = Field(default_factory=datetime.now)
 
+class ClientCreate(BaseModel):
+    name: str
+    email: str
+    complexity: ClientComplexityEnum
+
 class Intake(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     client_id: int = Field(foreign_key="client.id")  # link to Client
@@ -17,12 +23,27 @@ class Intake(SQLModel, table=True):
     status: IntakeStatusEnum = Field(default=IntakeStatusEnum.open)
     created_at: datetime = Field(default_factory=datetime.now)
 
+class IntakeCreate(BaseModel):
+    client_id: int
+    fiscal_year: int
+
 class ChecklistItem(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     intake_id: int = Field(foreign_key="intake.id")
     doc_kind: ChecklistItemDocKindEnum
     status: ChecklistItemStatusEnum = Field(default=ChecklistItemStatusEnum.missing)
     created_at: datetime = Field(default_factory=datetime.now)
+
+class Document(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    intake_id: int = Field(foreign_key="intake.id")
+    filename: str
+    sha256: str = Field(max_length=64)
+    mime_type: str
+    size_bytes: int
+    stored_path: str
+    uploaded_at: datetime = Field(default_factory=datetime.now)
+    doc_kind: DocumentDocKindEnum = Field(default=DocumentDocKindEnum.unknown)
 
 
 

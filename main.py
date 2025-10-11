@@ -1,10 +1,16 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
+from fastapi import FastAPI, UploadFile, File
 from datetime import datetime
 from sqlmodel import SQLModel, Field, create_engine, Session, select
+from hashlib import sha256
+import os
 
-from models import Client, Intake, ChecklistItem
-from enums import ClientComplexityEnum, IntakeStatusEnum, ChecklistItemDocKindEnum, ChecklistItemStatusEnum
+
+from models import Client,ClientCreate, Intake, IntakeCreate, ChecklistItem, Document
+from enums import ClientComplexityEnum, IntakeStatusEnum, ChecklistItemDocKindEnum, ChecklistItemStatusEnum, DocumentDocKindEnum
+
+from database import engine, init_database_tables
+
+init_database_tables()
 
 app = FastAPI()
 
@@ -14,17 +20,7 @@ CLIENT_COMPLEXITY_CHECKLIST = {
     "complex": [ChecklistItemDocKindEnum.T4, ChecklistItemDocKindEnum.id, ChecklistItemDocKindEnum.receipt, ChecklistItemDocKindEnum.receipt, ChecklistItemDocKindEnum.receipt, ChecklistItemDocKindEnum.receipt, ChecklistItemDocKindEnum.receipt]
 }
 
-engine = create_engine("sqlite:///database.db")
-SQLModel.metadata.create_all(engine)
 
-class ClientCreate(BaseModel):
-    name: str
-    email: str
-    complexity: ClientComplexityEnum
-
-class IntakeCreate(BaseModel):
-    client_id: int
-    fiscal_year: int
 
 @app.post("/clients")
 def create_client(client_data: ClientCreate):
@@ -68,6 +64,7 @@ def create_intake(intake_data: IntakeCreate):
                 for item in checklist_items
             ],
         }
+
 @app.get("/clients")
 def read_clients():
     with Session(engine) as session:
@@ -79,3 +76,41 @@ def read_intakes():
     with Session(engine) as session:
         intakes = session.exec(select(Intake)).all()
         return intakes
+
+UPLOAD_DIR = "bucket"  
+os.makedirs(UPLOAD_DIR, exist_ok=True) 
+
+@app.post("/intakes/{intake_id}/documents")
+async def upload_document(intake_id: int, file: UploadFile = File(...)):
+    with Session(engine) as session:
+        intake = session.get(Intake, intake_id)
+        if not intake:
+            return {"error": "Intake not found"}
+        
+        contents = await file.read()
+        file_hash = sha256(contents).hexdigest()
+        
+        existing_doc = session.exec(
+            select(Document).where(Document.intake_id == intake_id, Document.sha256 == file_hash)
+        ).first()
+        if existing_doc:
+            return {"error": "Duplicate document found"}
+
+        stored_path = os.path.join(UPLOAD_DIR, f"{intake_id}_{file.filename}")
+        with open(stored_path, "wb") as f:
+            f.write(contents)
+
+        doc = Document(
+            intake_id=intake_id,
+            filename=file.filename,
+            sha256=file_hash,
+            mime_type=file.content_type,
+            size_bytes=len(contents),
+            stored_path=stored_path,
+            doc_kind=DocumentDocKindEnum.unknown,  
+        )
+        session.add(doc)
+        session.commit()
+        session.refresh(doc)
+        
+        return {"document_id": doc.id, "filename": doc.filename, "doc_kind": doc.doc_kind}
