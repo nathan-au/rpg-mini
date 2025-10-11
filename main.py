@@ -1,56 +1,18 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from enum import Enum
 from datetime import datetime
 from sqlmodel import SQLModel, Field, create_engine, Session, select
 
+from models import Client, Intake, ChecklistItem
+from enums import ClientComplexityEnum, IntakeStatusEnum, ChecklistItemDocKindEnum, ChecklistItemStatusEnum
+
 app = FastAPI()
-
-class ClientComplexityEnum(str, Enum):
-    simple = "simple"
-    average = "average"
-    complex = "complex"
-
-class Client(SQLModel, table = True):
-    id: int | None = Field(default=None, primary_key=True)    
-    name: str
-    email: str
-    complexity: ClientComplexityEnum
-    created_at: datetime = Field(default_factory=datetime.now)
-
-class IntakeStatusEnum(str, Enum):
-    open = "open"
-    done = "done"
-
-class ChecklistItemDocKindEnum(str, Enum):
-    T4 = "T4"
-    receipt = "receipt"
-    id = "id"
-class ChecklistItemStatusEnum(str, Enum):
-    missing = "missing"
-    received = "received"
-
-class ChecklistItem(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    intake_id: int = Field(foreign_key="intake.id")
-    doc_kind: ChecklistItemDocKindEnum
-    status: ChecklistItemStatusEnum = Field(default=ChecklistItemStatusEnum.missing)
-    created_at: datetime = Field(default_factory=datetime.now)
 
 CLIENT_COMPLEXITY_CHECKLIST = {
     "simple": [ChecklistItemDocKindEnum.T4, ChecklistItemDocKindEnum.id],
     "average": [ChecklistItemDocKindEnum.T4, ChecklistItemDocKindEnum.id, ChecklistItemDocKindEnum.receipt, ChecklistItemDocKindEnum.receipt],
     "complex": [ChecklistItemDocKindEnum.T4, ChecklistItemDocKindEnum.id, ChecklistItemDocKindEnum.receipt, ChecklistItemDocKindEnum.receipt, ChecklistItemDocKindEnum.receipt, ChecklistItemDocKindEnum.receipt, ChecklistItemDocKindEnum.receipt]
 }
-
-class Intake(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    client_id: int = Field(foreign_key="client.id")  # link to Client
-    fiscal_year: int
-    status: IntakeStatusEnum = Field(default=IntakeStatusEnum.open)
-    created_at: datetime = Field(default_factory=datetime.now)
-
-
 
 engine = create_engine("sqlite:///database.db")
 SQLModel.metadata.create_all(engine)
