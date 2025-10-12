@@ -76,9 +76,6 @@ def classify_document(document_id: int):
             intake.status = IntakeStatusEnum.done
             session.add(intake)
 
-
-
-
         session.commit()
         session.refresh(document)
 
