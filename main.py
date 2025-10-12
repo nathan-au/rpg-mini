@@ -1,10 +1,14 @@
 from fastapi import FastAPI
-from database import init_database_tables
+from database import create_database_tables
 from endpoints import clients, intakes, documents
-init_database_tables()
 
-app = FastAPI( title="RPG-Mini: Accounting Automation", contact={"name": "Ready Plan Go", "url": "https://readyplango.com/"})
+create_database_tables() #call function to create database tables 
 
-app.include_router(clients.router)
+app = FastAPI( #creates new FastAPI app instance
+    title="RPG-Mini: Accounting Automation", #title shown in docs
+    contact={"name": "Ready Plan Go", "url": "https://readyplango.com/"} #link shown in docs
+)
+
+app.include_router(clients.router) #include routers from endpoints
 app.include_router(intakes.router)
 app.include_router(documents.router)
