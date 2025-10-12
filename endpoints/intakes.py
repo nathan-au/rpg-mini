@@ -93,3 +93,23 @@ async def upload_document(intake_id: int, file: UploadFile = File(...)):
         session.refresh(document)
         
         return {"document_id": document.id, "filename": document.filename, "doc_kind": document.doc_kind}
+
+@router.get("/{intake_id}/checklist")
+def get_intake_checklist(intake_id: int):
+    with Session(engine) as session:
+        intake = session.get(Intake, intake_id)
+        if not intake:
+            return {"error": "Intake not found"}
+
+        checklist_items = session.exec(
+            select(ChecklistItem).where(ChecklistItem.intake_id == intake_id)
+        ).all()
+
+        checklist = [
+            {"doc_kind": item.doc_kind, "status": item.status} for item in checklist_items
+        ]
+
+        return {
+            "intake status": intake.status,
+            "checklist": checklist
+        }
