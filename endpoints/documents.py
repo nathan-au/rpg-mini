@@ -4,12 +4,12 @@ from sqlmodel import Session
 from database import engine
 from models import Document, Intake
 from classification import classify_document, receive_checklist_item, update_intake_status
-
+from uuid import UUID
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
 @router.post("/{document_id}/classify") #POST endpoint to classify one singular document
-def classify_singular_document(document_id: int):
+def classify_singular_document(document_id: UUID):
     with Session(engine) as session:
         document = session.get(Document, document_id)
         if not document:
@@ -40,5 +40,3 @@ def classify_singular_document(document_id: int):
             ],
             "intake_status": intake.status
         }
-    
-        

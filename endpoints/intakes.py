@@ -3,20 +3,14 @@ from sqlmodel import Session, select
 import os
 from hashlib import sha256
 from models import Intake, IntakeCreate, Client, ChecklistItem, Document
-from enums import DocumentDocKindEnum, ChecklistItemStatusEnum, IntakeStatusEnum
+from enums import DocumentDocKindEnum
 from database import engine
 from classification import classify_document, receive_checklist_item, update_intake_status
-
-from constants import CLIENT_COMPLEXITY_CHECKLIST, T4_KEYWORDS, ID_KEYWORDS, RECEIPT_KEYWORDS
+from uuid import UUID
+from constants import CLIENT_COMPLEXITY_CHECKLIST
 
 router = APIRouter(prefix="/intakes", tags=["Intakes"])
 
-@router.get("/") #GET endpoint to get list of intakes
-def TEMP_read_intakes():
-    with Session(engine) as session:
-        intakes = session.exec(select(Intake)).all()
-        return intakes
-    
 @router.post("/") #POST endpoint to create new intake
 def create_intake(intake_data: IntakeCreate):
     intake = Intake(**intake_data.model_dump())
@@ -56,7 +50,7 @@ UPLOAD_DIR = "bucket" #define upload directory called bucket to store uploaded f
 os.makedirs(UPLOAD_DIR, exist_ok=True) #if bucket does not exist, create bucket
 
 @router.post("/{intake_id}/documents") #POST endpoint to upload documents
-async def upload_document(intake_id: int, file: UploadFile = File(...)): #async def means the function is asynchronous meaning Python will continue while handling file uploads, file is uploaded and validated as UploadFile
+async def upload_document(intake_id: UUID, file: UploadFile = File(...)): #async def means the function is asynchronous meaning Python will continue while handling file uploads, file is uploaded and validated as UploadFile
     with Session(engine) as session:
         intake = session.get(Intake, intake_id) #get intake id from POST and verify that the intake exists
         if not intake:
@@ -97,28 +91,8 @@ async def upload_document(intake_id: int, file: UploadFile = File(...)): #async 
             "doc_kind": document.doc_kind
         }
 
-@router.get("/{intake_id}/checklist") #GET endpoint for intake status and checklist items
-def get_intake_checklist(intake_id: int):
-    with Session(engine) as session:
-        intake = session.get(Intake, intake_id) 
-        if not intake: #verify intake exists
-            return {"error": "Intake not found"}
-
-        checklist_items = session.exec( #get checklist items for intake based on intake id
-            select(ChecklistItem).where(ChecklistItem.intake_id == intake_id)
-        ).all()
-
-        checklist = [
-            {"doc_kind": item.doc_kind, "status": item.status} for item in checklist_items
-        ]
-
-        return { #return checklist items and intake status
-            "intake status": intake.status,
-            "checklist": checklist
-        }
-
 @router.post("/{intake_id}/classify") #POST endpoint to classify all unknown documents of an intake
-def classify_all_intake_documents(intake_id: int):
+def classify_all_intake_documents(intake_id: UUID):
     with Session(engine) as session:
         intake = session.get(Intake, intake_id)
         if not intake:
@@ -156,4 +130,24 @@ def classify_all_intake_documents(intake_id: int):
             "intake_id": intake_id,
             "classified_documents": classification_results,
             "intake_status": intake.status
+        }
+
+@router.get("/{intake_id}/checklist") #GET endpoint for intake status and checklist items
+def get_intake_checklist(intake_id: UUID):
+    with Session(engine) as session:
+        intake = session.get(Intake, intake_id) 
+        if not intake: #verify intake exists
+            return {"error": "Intake not found"}
+
+        checklist_items = session.exec( #get checklist items for intake based on intake id
+            select(ChecklistItem).where(ChecklistItem.intake_id == intake_id)
+        ).all()
+
+        checklist = [
+            {"doc_kind": item.doc_kind, "status": item.status} for item in checklist_items
+        ]
+
+        return { #return checklist items and intake status
+            "intake status": intake.status,
+            "checklist": checklist
         }
