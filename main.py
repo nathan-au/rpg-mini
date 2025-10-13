@@ -12,3 +12,7 @@ app = FastAPI( #creates new FastAPI app instance
 app.include_router(clients.router) #include routers from endpoints
 app.include_router(intakes.router)
 app.include_router(documents.router)
+
+@app.get("/")
+def hello_rpg_mini():
+    return {"Hello": "RPG-Mini"}

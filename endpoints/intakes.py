@@ -3,20 +3,13 @@ from sqlmodel import Session, select
 import os
 from hashlib import sha256
 from models import Intake, IntakeCreate, Client, ChecklistItem, Document
-from enums import ChecklistItemDocKindEnum, DocumentDocKindEnum, ChecklistItemStatusEnum, IntakeStatusEnum
+from enums import DocumentDocKindEnum, ChecklistItemStatusEnum, IntakeStatusEnum
 from database import engine
+from classification import classify_document, receive_checklist_item, update_intake_status
 
-import pymupdf
-import pytesseract
-from PIL import Image
+from constants import CLIENT_COMPLEXITY_CHECKLIST, T4_KEYWORDS, ID_KEYWORDS, RECEIPT_KEYWORDS
 
 router = APIRouter(prefix="/intakes", tags=["Intakes"])
-
-CLIENT_COMPLEXITY_CHECKLIST = { #defines intake checklist items based on client complexity
-    "simple": [ChecklistItemDocKindEnum.T4, ChecklistItemDocKindEnum.id], #simple requires t4 and id
-    "average": [ChecklistItemDocKindEnum.T4, ChecklistItemDocKindEnum.id, ChecklistItemDocKindEnum.receipt, ChecklistItemDocKindEnum.receipt], #average requires t4, id and 2 receipts
-    "complex": [ChecklistItemDocKindEnum.T4, ChecklistItemDocKindEnum.id, ChecklistItemDocKindEnum.receipt, ChecklistItemDocKindEnum.receipt, ChecklistItemDocKindEnum.receipt, ChecklistItemDocKindEnum.receipt, ChecklistItemDocKindEnum.receipt]
-}
 
 @router.get("/") #GET endpoint to get list of intakes
 def TEMP_read_intakes():
@@ -123,10 +116,9 @@ def get_intake_checklist(intake_id: int):
             "intake status": intake.status,
             "checklist": checklist
         }
-    
 
 @router.post("/{intake_id}/classify") #POST endpoint to classify all unknown documents of an intake
-def classify_intake_documents(intake_id: int):
+def classify_all_intake_documents(intake_id: int):
     with Session(engine) as session:
         intake = session.get(Intake, intake_id)
         if not intake:
@@ -139,76 +131,29 @@ def classify_intake_documents(intake_id: int):
             )
         ).all()
 
-        classified_results = []
+        classification_results = []
 
         for document in unknown_documents: #loop for each document that is unknown
-            filename = document.filename.lower()
-            document_kind = None
+            
+            document_classification = classify_document(document)
 
-            if "t4" in filename:
-                document_kind = DocumentDocKindEnum.T4
-            elif "receipt" in filename:
-                document_kind = DocumentDocKindEnum.receipt
-            elif "license" in filename:
-                document_kind = DocumentDocKindEnum.id
-            else:
-                stored_path = document.stored_path
-                text = ""
-                try:
-                    if stored_path.endswith(".pdf"):
-                        pdf = pymupdf.open(stored_path)
-                        for page in pdf:
-                            text += page.get_text("text")
-                        pdf.close()
-                    elif stored_path.endswith((".png", ".jpg", ".jpeg")):
-                        img = Image.open(stored_path)
-                        text = pytesseract.image_to_string(img)
-                except Exception as e:
-                    print(f"Extraction/OCR failed for {stored_path}: {e}")
-
-                text_lower = text.lower()
-                if "t4" in text_lower:
-                    document_kind = DocumentDocKindEnum.T4
-                elif "receipt" in text_lower:
-                    document_kind = DocumentDocKindEnum.receipt
-                elif "license" in text_lower or "id" in text_lower or "passport" in text_lower:
-                    document_kind = DocumentDocKindEnum.id
-                else:
-                    document_kind = DocumentDocKindEnum.unknown
-
-            document.doc_kind = document_kind
+            document.doc_kind = document_classification
             session.add(document)
 
-            if document_kind != DocumentDocKindEnum.unknown:
-                checklist_item = session.exec(
-                    select(ChecklistItem).where(
-                        ChecklistItem.intake_id == document.intake_id,
-                        ChecklistItem.doc_kind == document_kind,
-                        ChecklistItem.status == ChecklistItemStatusEnum.missing
-                    )
-                ).first()
-                if checklist_item:
-                    checklist_item.status = ChecklistItemStatusEnum.received
-                    session.add(checklist_item)
-
-            classified_results.append({ #add classification results to classified results to be displayed later
+            classification_results.append({ #add classification results to classified results to be displayed later
                 "document_id": document.id,
                 "filename": document.filename,
-                "classified_as": document_kind
+                "classified_as": document.doc_kind
             })
 
-        all_items = session.exec(
-            select(ChecklistItem).where(ChecklistItem.intake_id == intake_id)
-        ).all()
-        if all(item.status == ChecklistItemStatusEnum.received for item in all_items):
-            intake.status = IntakeStatusEnum.done
-            session.add(intake)
+            receive_checklist_item(document_classification, document.intake_id, session)
 
+        update_intake_status(intake_id, session)
         session.commit()
-        session.refresh(document)
+        session.refresh(intake)
 
-        return { #return JSON with all classification results
+        return {
             "intake_id": intake_id,
-            "classified_documents": classified_results,
+            "classified_documents": classification_results,
             "intake_status": intake.status
         }
