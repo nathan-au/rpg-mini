@@ -2,7 +2,7 @@ from unidecode import unidecode
 from PIL import Image
 import pymupdf
 import pytesseract
-from models import Document, ChecklistItem, Intake
+from database.models import Document, ChecklistItem, Intake
 from enums import DocumentDocKindEnum, ChecklistItemStatusEnum, IntakeStatusEnum
 from constants import RECEIPT_KEYWORDS, T4_KEYWORDS, ID_KEYWORDS
 from sqlmodel import Session, select

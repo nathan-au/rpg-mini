@@ -1,9 +1,9 @@
 
 from fastapi import APIRouter
 from sqlmodel import Session
-from database import engine
-from models import Document, Intake
-from classification import classify_document, receive_checklist_item, update_intake_status
+from database.database import engine
+from database.models import Document, Intake
+from logic.classification import classify_document, receive_checklist_item, update_intake_status
 from uuid import UUID
 
 router = APIRouter(prefix="/documents", tags=["Documents"])

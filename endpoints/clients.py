@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from sqlmodel import Session
-from models import Client, ClientCreate
-from database import engine
+from database.models import Client, ClientCreate
+from database.database import engine
 
 router = APIRouter(prefix="/clients", tags=["Clients"]) #APIRouter allows endpoints to be grouped together instead of everything in one file, prefix /clients means all endpoints in this router will start with /clients, tags for grouping in docs
 

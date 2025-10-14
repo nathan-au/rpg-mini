@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from database import create_database_tables
+from database.database import create_database_tables
 from endpoints import clients, intakes, documents
 
 create_database_tables() #call function to create database tables 

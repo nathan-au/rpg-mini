@@ -2,10 +2,10 @@ from fastapi import APIRouter, UploadFile, File
 from sqlmodel import Session, select
 import os
 from hashlib import sha256
-from models import Intake, IntakeCreate, Client, ChecklistItem, Document
+from database.models import Intake, IntakeCreate, Client, ChecklistItem, Document
 from enums import DocumentDocKindEnum
-from database import engine
-from classification import classify_document, receive_checklist_item, update_intake_status
+from database.database import engine
+from logic.classification import classify_document, receive_checklist_item, update_intake_status
 from uuid import UUID
 from constants import CLIENT_COMPLEXITY_CHECKLIST
 
