@@ -7,8 +7,9 @@ class ClientComplexityEnum(str, Enum): #enum for client complexity
     average = "average" #average client
     complex = "complex" #complex client
 
-class IntakeStatusEnum(str, Enum): #intake status can either be open or done
+class IntakeStatusEnum(str, Enum): #intake status can either be open or pending or done
     open = "open"
+    received = "received"
     done = "done"
 
 class ChecklistItemDocKindEnum(str, Enum):
@@ -19,6 +20,7 @@ class ChecklistItemDocKindEnum(str, Enum):
 class ChecklistItemStatusEnum(str, Enum):
     missing = "missing"
     received = "received"
+    extracted = "extracted"
 
 class DocumentDocKindEnum(str, Enum):
     T4 = "T4"

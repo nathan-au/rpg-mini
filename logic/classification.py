@@ -73,5 +73,5 @@ def update_intake_status(intake_id: int, session: Session):
     ).all()
     if all(item.status == ChecklistItemStatusEnum.received for item in intake_checklist): #if all intake items are received then intake should be done
         intake = session.get(Intake, intake_id)
-        intake.status = IntakeStatusEnum.done
+        intake.status = IntakeStatusEnum.received
         session.add(intake)
