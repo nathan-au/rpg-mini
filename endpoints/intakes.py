@@ -5,7 +5,7 @@ from hashlib import sha256
 from database.models import Intake, IntakeCreate, Client, ChecklistItem, Document
 from enums import DocumentDocKindEnum
 from database.database import engine
-from logic.classification import classify_document, receive_checklist_item, update_intake_status
+from logic.classification import classify_document, receive_checklist_item, receive_intake
 from uuid import UUID
 from constants import CLIENT_COMPLEXITY_CHECKLIST
 
@@ -122,7 +122,7 @@ def classify_all_intake_documents(intake_id: UUID):
 
             receive_checklist_item(document_classification, document.intake_id, session)
 
-        update_intake_status(intake_id, session)
+        receive_intake(intake_id, session)
         session.commit()
         session.refresh(intake)
 

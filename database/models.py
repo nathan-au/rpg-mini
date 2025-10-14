@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 from sqlmodel import SQLModel, Field
+from sqlalchemy import Column, JSON
 from enums import ClientComplexityEnum, IntakeStatusEnum, ChecklistItemDocKindEnum, ChecklistItemStatusEnum, DocumentDocKindEnum #import enums from enums.py to have access to fixed choices in models
 import uuid
 
@@ -44,3 +45,4 @@ class Document(SQLModel, table=True):
     stored_path: str
     uploaded_at: datetime = Field(default_factory=datetime.now)
     doc_kind: DocumentDocKindEnum = Field(default=DocumentDocKindEnum.unknown)
+    extracted_fields: dict | None = Field(default=None, sa_column=Column(JSON))
