@@ -4,16 +4,14 @@ from main import app
 client = TestClient(app)
 
 def test_create_client_422():
-    test_data = {
+    test_client_data = {
         "name": "Missing Field Client",
         "email": "missingfieldclient@example.com",
         #"complexity" field is missing
     }
 
-    response = client.post("/clients/", json=test_data)
-    
-    assert response.status_code == 422
-
+    response = client.post("/clients/", json=test_client_data)
+    assert response.status_code == 422 #code for HTTPException validation error
     response_json = response.json()
     assert "detail" in response_json
 
@@ -23,7 +21,7 @@ def test_create_intake_404():
         "fiscal_year": 2025,
     }
     intake_response = client.post("/intakes/", json=test_intake_data)
-    assert intake_response.status_code == 404
+    assert intake_response.status_code == 404 #not found status code
 
     intake_response_json = intake_response.json()
     intake_response_json["detail"] = "Client not found"
@@ -103,7 +101,7 @@ def test_document_upload_415():
 
     #upload mp3
     test_document_1_data = {
-        "file_path": "./tests/minecraft_xp.mp3",
+        "file_path": "./tests/sample_docs/minecraft_xp.mp3",
         "filename": "minecraft_xp.mp3",
         "mime_type": "audio/mpeg"
     }

@@ -8,9 +8,9 @@ import json
 import re
 
 def extract_document_fields(document: Document) -> dict | None:
-    document_contents = extract_document_contents(document)
-    extraction_prompt = select_extraction_prompt(document, document_contents)
-    extracted_fields = run_extraction_model(extraction_prompt)
+    document_contents = extract_document_contents(document) #first extracts document contents
+    extraction_prompt = select_extraction_prompt(document, document_contents) #then picks prompt based on doc_kind
+    extracted_fields = run_extraction_model(extraction_prompt) #extracts document fields
     return extracted_fields
     
 
@@ -18,9 +18,9 @@ def extract_document_contents(document: Document) -> str:
     document_stored_path = document.stored_path
     document_contents = ""
     try:
-        if document_stored_path.lower().endswith(".pdf"):
-            pdf_image = convert_from_path(document_stored_path, dpi=300)
-            document_contents = pytesseract.image_to_string(pdf_image[0])
+        if document_stored_path.lower().endswith(".pdf"): #convert pdf to image because for some reason image OCR is better than getting text from pdf
+            pdf_image = convert_from_path(document_stored_path, dpi=300) #dpi is dots per inch and is basically like resolution
+            document_contents = pytesseract.image_to_string(pdf_image[0]) #only convert the first page of the pdf (t4) because second page has too much info (overwhelms model)
         elif document_stored_path.lower().endswith((".png", ".jpg", ".jpeg")): 
             with Image.open(document_stored_path) as image_file:
                 document_contents = pytesseract.image_to_string(image_file)
@@ -29,7 +29,7 @@ def extract_document_contents(document: Document) -> str:
 
     return document_contents
 
-def select_extraction_prompt(document: Document, document_contents: str) -> str:
+def select_extraction_prompt(document: Document, document_contents: str) -> str: #choose different prompt to extract different fields depending on what doc kind it is
     document_classification = document.doc_kind
 
     if document_classification == DocumentDocKindEnum.receipt:

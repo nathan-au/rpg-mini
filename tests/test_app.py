@@ -3,22 +3,22 @@ from main import app
 
 client = TestClient(app)
 
-def test_app_201():
+def test_app_201(): #test for end-to-end flow of app including client creation, intake creation, document upload, classification and extraction
     #create client
-    test_client_data = {
+    test_client_data = { #define test client data for client creation
         "name": "Test Client",
         "email": "testclient@example.com",
         "complexity": "simple"
     }
-    client_response = client.post("/clients/", json=test_client_data)
+    client_response = client.post("/clients/", json=test_client_data) #send post request to client endpoint to create new client
     assert client_response.status_code == 201
     client_response_json = client_response.json()
-    assert "id" in client_response_json
+    assert "id" in client_response_json #validate client response
     assert client_response_json["name"] == test_client_data["name"]
     assert client_response_json["email"] == test_client_data["email"]
     assert client_response_json["complexity"] == test_client_data["complexity"]
     assert "created_at" in client_response_json
-    test_client_id = client_response_json["id"]
+    test_client_id = client_response_json["id"] #save test client id for intake creation
 
     #create intake
     test_intake_data = {
@@ -53,9 +53,9 @@ def test_app_201():
         "filename": "T4_sample.pdf",
         "mime_type": "application/pdf"
     }
-    with open(test_document_1_data["file_path"], "rb") as f:
-        files = {"file": (test_document_1_data["filename"], f, test_document_1_data["mime_type"])}
-        document_1_upload_response = client.post(f"/intakes/{test_intake_id}/documents", files=files)
+    with open(test_document_1_data["file_path"], "rb") as f: 
+        files = {"file": (test_document_1_data["filename"], f, test_document_1_data["mime_type"])} #this is the payloadformat that FastAPI expects for file upload
+        document_1_upload_response = client.post(f"/intakes/{test_intake_id}/documents", files=files) #send the file
     assert document_1_upload_response.status_code == 201
     document_1_upload_response_json = document_1_upload_response.json()
 
@@ -72,7 +72,6 @@ def test_app_201():
     #upload id
     test_document_2_data = {
         "file_path": "./tests/sample_docs/drivers_license.jpg",
-
         "filename": "drivers_license.jpg",
         "mime_type": "image/jpeg"
     }
