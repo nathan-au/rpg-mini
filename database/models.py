@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from datetime import datetime
 from sqlmodel import SQLModel, Field
 from sqlalchemy import Column, JSON
+from typing import List
 from enums import ClientComplexityEnum, IntakeStatusEnum, ChecklistItemDocKindEnum, ChecklistItemStatusEnum, DocumentDocKindEnum #import enums from enums.py to have access to fixed choices in models
 import uuid
 
@@ -26,7 +27,7 @@ class Intake(SQLModel, table=True):
 
 class IntakeCreate(BaseModel):
     client_id: uuid.UUID #client id is used to verify that the client actually exits when creating an intake for them
-    fiscal_year: int
+    fiscal_year: int  
 
 class ChecklistItem(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)

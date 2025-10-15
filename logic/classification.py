@@ -52,7 +52,7 @@ def normalize_text(text: str) -> str:
     compacted_lowercased_unicoded_text = unidecode(text).lower().replace(" ", "").replace("\n", "") #normalize text for matching by removing non-ASCII characters, converting to lowercase and remove spaces and newlines for matching
     return compacted_lowercased_unicoded_text
 
-def receive_checklist_item(document_classification: DocumentDocKindEnum, intake_id: UUID, session: Session):
+def mark_checklist_item_received(document_classification: DocumentDocKindEnum, intake_id: UUID, session: Session):
     if document_classification == DocumentDocKindEnum.unknown: #only look for missing checklist item if we have successfully classified the current document
         return
     
@@ -67,7 +67,7 @@ def receive_checklist_item(document_classification: DocumentDocKindEnum, intake_
         matching_missing_checklist_item.status = ChecklistItemStatusEnum.received
         session.add(matching_missing_checklist_item)
 
-def receive_intake(intake_id: UUID, session: Session):
+def mark_intake_received(intake_id: UUID, session: Session):
 
     intake_checklist = session.exec( #fetch intake checklist items
         select(ChecklistItem).where(ChecklistItem.intake_id == intake_id)

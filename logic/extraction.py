@@ -109,7 +109,7 @@ def run_extraction_model(extraction_prompt: str) -> dict | None:
         print(f"Error running {model}: {e}")
     return extracted_fields
 
-def extract_checklist_item(extracted_fields: dict | None, document_classification: DocumentDocKindEnum, intake_id: UUID, session: Session):
+def mark_checklist_item_extracted(extracted_fields: dict | None, document_classification: DocumentDocKindEnum, intake_id: UUID, session: Session):
         
         if extracted_fields == None:
             return
@@ -124,7 +124,7 @@ def extract_checklist_item(extracted_fields: dict | None, document_classificatio
         if matching_received_checklist_item:
             matching_received_checklist_item.status = ChecklistItemStatusEnum.extracted
             session.add(matching_received_checklist_item)
-def extract_intake(intake_id: UUID, session: Session):
+def mark_intake_extracted(intake_id: UUID, session: Session):
     intake_checklist = session.exec( #fetch intake checklist items
         select(ChecklistItem).where(ChecklistItem.intake_id == intake_id)
     ).all()

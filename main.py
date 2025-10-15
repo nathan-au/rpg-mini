@@ -14,5 +14,8 @@ app.include_router(intakes.router)
 app.include_router(documents.router)
 
 @app.get("/")
-def hello_rpg_mini():
-    return {"Hello": "RPG-Mini"}
+def root():
+    return {
+        "message": "Welcome to RPG-Mini",
+        "docs_url": "/docs"
+    }
