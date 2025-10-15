@@ -1,13 +1,12 @@
-
 from fastapi import APIRouter, HTTPException
 from sqlmodel import Session
 from database.database import engine
 from database.models import Document, Intake
-from logic.classification import classify_document, mark_checklist_item_received, mark_intake_received
+from logic.classification import classify_document
 from uuid import UUID
-from logic.extraction import extract_document_fields, mark_checklist_item_extracted, mark_intake_extracted
+from logic.extraction import extract_document_fields
 from enums import DocumentDocKindEnum
-
+from logic.status import mark_checklist_item_received, mark_intake_received, mark_checklist_item_extracted, mark_intake_extracted
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 

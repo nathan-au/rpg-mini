@@ -1,13 +1,11 @@
-from database.models import Document, ChecklistItem, Intake
+from database.models import Document
 from pdf2image import convert_from_path
 import pytesseract
 from PIL import Image
-from enums import DocumentDocKindEnum, ChecklistItemStatusEnum, IntakeStatusEnum
+from enums import DocumentDocKindEnum
 from ollama import generate
 import json
 import re
-from uuid import UUID
-from sqlmodel import Session, select
 
 def extract_document_fields(document: Document) -> dict | None:
     document_contents = extract_document_contents(document)
@@ -27,7 +25,7 @@ def extract_document_contents(document: Document) -> str:
             with Image.open(document_stored_path) as image_file:
                 document_contents = pytesseract.image_to_string(image_file)
     except Exception as e: 
-        print(f"Conversion/OCR failed for {document_stored_path}: {e}")
+        print(f"{document.filename} could not be processed: {e}")
 
     return document_contents
 
@@ -108,27 +106,3 @@ def run_extraction_model(extraction_prompt: str) -> dict | None:
     except Exception as e:
         print(f"Error running {model}: {e}")
     return extracted_fields
-
-def mark_checklist_item_extracted(extracted_fields: dict | None, document_classification: DocumentDocKindEnum, intake_id: UUID, session: Session):
-        
-        if extracted_fields == None:
-            return
-        
-        matching_received_checklist_item = session.exec(
-            select(ChecklistItem).where(
-                ChecklistItem.intake_id == intake_id,
-                ChecklistItem.doc_kind == document_classification,
-                ChecklistItem.status == ChecklistItemStatusEnum.received
-            )
-        ).first()
-        if matching_received_checklist_item:
-            matching_received_checklist_item.status = ChecklistItemStatusEnum.extracted
-            session.add(matching_received_checklist_item)
-def mark_intake_extracted(intake_id: UUID, session: Session):
-    intake_checklist = session.exec( #fetch intake checklist items
-        select(ChecklistItem).where(ChecklistItem.intake_id == intake_id)
-    ).all()
-    if all(item.status == ChecklistItemStatusEnum.extracted for item in intake_checklist): #if all intake items are received then intake should be done
-        intake = session.get(Intake, intake_id)
-        intake.status = IntakeStatusEnum.done
-        session.add(intake)

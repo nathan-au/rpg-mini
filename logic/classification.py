@@ -2,11 +2,9 @@ from unidecode import unidecode
 from PIL import Image
 import pymupdf
 import pytesseract
-from database.models import Document, ChecklistItem, Intake
-from enums import DocumentDocKindEnum, ChecklistItemStatusEnum, IntakeStatusEnum
+from database.models import Document
+from enums import DocumentDocKindEnum 
 from constants import RECEIPT_KEYWORDS, T4_KEYWORDS, ID_KEYWORDS
-from sqlmodel import Session, select
-from uuid import UUID
 
 def classify_document(document: Document) -> DocumentDocKindEnum: #master function to classify documents
     document_classification = classify_document_by_name(document) #first try classifying by name
@@ -22,19 +20,19 @@ def classify_document_by_name(document: Document) -> DocumentDocKindEnum: #check
 def classify_document_by_contents(document: Document) -> DocumentDocKindEnum: #check file contents for keywords to classify document
     document_stored_path = document.stored_path
 
-    contents = ""
+    document_contents = ""
     try:
         if document_stored_path.lower().endswith(".pdf"): #if file is a pdf or PDF then use PyMyPDF to get text from file
             with pymupdf.open(document_stored_path) as pdf_file: #use with..as to close file afterwards automatically
                 for page in pdf_file: #for each page in pdf file, get page text and add to contents
-                    contents += page.get_text("text")
+                    document_contents += page.get_text("text")
         elif document_stored_path.lower().endswith((".png", ".jpg", ".jpeg")): #if file is an image then use pytesseract OCR (optical character recognition) to convert image to string and add to contents
             with Image.open(document_stored_path) as image_file:
-                contents = pytesseract.image_to_string(image_file)
+                document_contents = pytesseract.image_to_string(image_file)
     except Exception as e: #triggers if an Exception occurs inside try
-        print(f"Conversion/OCR failed for {document_stored_path}: {e}")
+        print(f"{document.filename} could not be processed: {e}")
 
-    normalized_contents = normalize_text(contents)
+    normalized_contents = normalize_text(document_contents)
     return search_keywords_in_text(normalized_contents) 
 
 def search_keywords_in_text(text: str) -> DocumentDocKindEnum: 
@@ -51,28 +49,3 @@ def search_keywords_in_text(text: str) -> DocumentDocKindEnum:
 def normalize_text(text: str) -> str:
     compacted_lowercased_unicoded_text = unidecode(text).lower().replace(" ", "").replace("\n", "") #normalize text for matching by removing non-ASCII characters, converting to lowercase and remove spaces and newlines for matching
     return compacted_lowercased_unicoded_text
-
-def mark_checklist_item_received(document_classification: DocumentDocKindEnum, intake_id: UUID, session: Session):
-    if document_classification == DocumentDocKindEnum.unknown: #only look for missing checklist item if we have successfully classified the current document
-        return
-    
-    matching_missing_checklist_item = session.exec( #look for checklist item of intake that is still missing and matches the document classification 
-        select(ChecklistItem).where(
-            ChecklistItem.intake_id == intake_id,
-            ChecklistItem.doc_kind == document_classification,
-            ChecklistItem.status == ChecklistItemStatusEnum.missing
-        )
-    ).first()
-    if matching_missing_checklist_item: #if missing item exists, we have just received it so mark status as received
-        matching_missing_checklist_item.status = ChecklistItemStatusEnum.received
-        session.add(matching_missing_checklist_item)
-
-def mark_intake_received(intake_id: UUID, session: Session):
-
-    intake_checklist = session.exec( #fetch intake checklist items
-        select(ChecklistItem).where(ChecklistItem.intake_id == intake_id)
-    ).all()
-    if all(item.status in [ChecklistItemStatusEnum.received, ChecklistItemStatusEnum.extracted]for item in intake_checklist): #if all intake items are received then intake should be done
-        intake = session.get(Intake, intake_id)
-        intake.status = IntakeStatusEnum.received
-        session.add(intake)

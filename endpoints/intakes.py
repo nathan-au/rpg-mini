@@ -5,11 +5,12 @@ from hashlib import sha256
 from database.models import Intake, IntakeCreate, Client, ChecklistItem, Document
 from enums import DocumentDocKindEnum
 from database.database import engine
-from logic.classification import classify_document, mark_checklist_item_received, mark_intake_received
+from logic.classification import classify_document
 from uuid import UUID
 from constants import CLIENT_COMPLEXITY_CHECKLIST
-from logic.extraction import extract_document_fields, mark_checklist_item_extracted, mark_intake_extracted
+from logic.extraction import extract_document_fields 
 from config import UPLOAD_DIR
+from logic.status import mark_checklist_item_received, mark_intake_received, mark_checklist_item_extracted, mark_intake_extracted
 
 router = APIRouter(prefix="/intakes", tags=["Intakes"])
 
