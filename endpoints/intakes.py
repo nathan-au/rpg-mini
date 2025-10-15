@@ -8,6 +8,7 @@ from database.database import engine
 from logic.classification import classify_document, receive_checklist_item, receive_intake
 from uuid import UUID
 from constants import CLIENT_COMPLEXITY_CHECKLIST
+from logic.extraction import extract_document_fields, extract_checklist_item, extract_intake
 
 router = APIRouter(prefix="/intakes", tags=["Intakes"])
 
@@ -78,7 +79,8 @@ async def upload_document(intake_id: UUID, file: UploadFile = File(...)): #async
             mime_type=file.content_type,
             size_bytes=len(file_contents),
             stored_path=stored_path,
-            doc_kind=DocumentDocKindEnum.unknown,  
+            doc_kind=DocumentDocKindEnum.unknown,
+            extracted_fields=None  
         )
 
         session.add(document)
@@ -129,6 +131,45 @@ def classify_all_intake_documents(intake_id: UUID):
         return {
             "intake_id": intake_id,
             "classified_documents": classification_results,
+            "intake_status": intake.status
+        }
+    
+@router.post("/{intake_id}/extract")
+def extract_all_intake_documents(intake_id: UUID):
+    with Session(engine) as session:
+        intake = session.get(Intake, intake_id)
+        if not intake:
+            return {"error": "Intake not found"}
+    
+        pending_documents = session.exec( 
+            select(Document).where(
+                Document.intake_id == intake_id,
+                Document.doc_kind != DocumentDocKindEnum.unknown,
+                Document.extracted_fields == "null"
+            )
+        ).all()
+
+        print(pending_documents)
+
+        extraction_results = []
+
+        for document in pending_documents:
+            extracted_fields = extract_document_fields(document)
+            document.extracted_fields = extracted_fields
+            session.add(document)
+            extraction_results.append({
+                "document_id": document.id,
+                "document_classification": document.doc_kind,
+                "extracted_fields": document.extracted_fields
+            })
+            extract_checklist_item(extracted_fields, document.doc_kind, document.intake_id, session)
+        extract_intake(intake_id, session)
+        session.commit()
+        session.refresh(intake)
+
+        return {
+            "intake_id": intake_id,
+            "extracted_documents": extraction_results,
             "intake_status": intake.status
         }
 
