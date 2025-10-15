@@ -20,7 +20,7 @@ def create_intake(intake_data: IntakeCreate):
     with Session(engine) as session:
         client = session.get(Client, intake.client_id) #find client in database with matching client id
         if not client: 
-            raise HTTPException(status_code=404, detail="Client not found") #raise HTTP error with code 404 and will show Client not found
+            raise HTTPException(status_code=404, detail="Client not found") #HTTP error with code 404 and will show Client not found if not client
         session.add(intake)
 
         initialized_intake_checklist = [ #creates ChecklistItem object for each item in list of expected checklist items based on client complexity
@@ -33,7 +33,7 @@ def create_intake(intake_data: IntakeCreate):
         session.refresh(intake) 
 
         intake_checklist = session.exec(
-            select(ChecklistItem).where(ChecklistItem.intake_id == intake.id)
+            select(ChecklistItem).where(ChecklistItem.intake_id == intake.id).order_by(ChecklistItem.created_at)
         ).all()
 
         return { #returns JSON response with intake and checklist details
@@ -115,6 +115,7 @@ def classify_all_intake_documents(intake_id: UUID):
                 Document.intake_id == intake.id,
                 Document.doc_kind == DocumentDocKindEnum.unknown
             )
+            .order_by(Document.uploaded_at)
         ).all()
 
         classified_documents = []
@@ -159,6 +160,7 @@ def extract_all_intake_documents(intake_id: UUID):
                 Document.doc_kind != DocumentDocKindEnum.unknown,
                 Document.extracted_fields == "null"
             )
+            .order_by(Document.uploaded_at)
         ).all()
 
         extracted_documents = []
@@ -198,7 +200,7 @@ def get_intake_checklist(intake_id: UUID):
             raise HTTPException(status_code=404, detail="Intake not found")
 
         intake_checklist = session.exec( #get checklist items for intake based on intake id
-            select(ChecklistItem).where(ChecklistItem.intake_id == intake.id)
+            select(ChecklistItem).where(ChecklistItem.intake_id == intake.id).order_by(ChecklistItem.created_at)
         ).all()
 
         mark_intake_received(intake.id, session)

@@ -13,6 +13,7 @@ def mark_checklist_item_received(document_classification: DocumentDocKindEnum, i
             ChecklistItem.doc_kind == document_classification,
             ChecklistItem.status == ChecklistItemStatusEnum.missing
         )
+        .order_by(ChecklistItem.created_at)
     ).first()
     if matching_missing_checklist_item: #if missing item exists, we have just received it so mark status as received
         matching_missing_checklist_item.status = ChecklistItemStatusEnum.received
@@ -20,7 +21,8 @@ def mark_checklist_item_received(document_classification: DocumentDocKindEnum, i
 
 def mark_intake_received(intake_id: UUID, session: Session):
     intake_checklist = session.exec( #fetch intake checklist items
-        select(ChecklistItem).where(ChecklistItem.intake_id == intake_id)
+        select(ChecklistItem).where(ChecklistItem.intake_id == intake_id).order_by(ChecklistItem.created_at)
+
     ).all()
     if all(item.status in [ChecklistItemStatusEnum.received, ChecklistItemStatusEnum.extracted]for item in intake_checklist): #if all intake items are received then intake should be done
         intake = session.get(Intake, intake_id)
@@ -37,13 +39,15 @@ def mark_checklist_item_extracted(extracted_fields: dict | None, document_classi
                 ChecklistItem.doc_kind == document_classification,
                 ChecklistItem.status == ChecklistItemStatusEnum.received
             )
+            .order_by(ChecklistItem.created_at)
         ).first()
         if matching_received_checklist_item:
             matching_received_checklist_item.status = ChecklistItemStatusEnum.extracted
             session.add(matching_received_checklist_item)
 def mark_intake_extracted(intake_id: UUID, session: Session):
     intake_checklist = session.exec( #fetch intake checklist items
-        select(ChecklistItem).where(ChecklistItem.intake_id == intake_id)
+        select(ChecklistItem).where(ChecklistItem.intake_id == intake_id).order_by(ChecklistItem.created_at)
+
     ).all()
     if all(item.status == ChecklistItemStatusEnum.extracted for item in intake_checklist): #if all intake items are received then intake should be done
         intake = session.get(Intake, intake_id)
