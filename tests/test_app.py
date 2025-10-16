@@ -152,3 +152,27 @@ def test_app_201(): #test for end-to-end flow of app including client creation, 
     assert "full_name" in extracted_fields_extracted_document_2
     assert "date_of_birth" in extracted_fields_extracted_document_2
     assert "id_number" in extracted_fields_extracted_document_2
+
+    # get checklist
+    checklist_response = client.get(f"/intakes/{test_intake_id}/checklist")
+    assert checklist_response.status_code == 200
+
+    checklist_response_json = checklist_response.json()
+
+    checklist_intake_json = checklist_response_json["intake"]
+    assert "id" in checklist_intake_json
+    assert checklist_intake_json["id"] == test_intake_id
+    assert checklist_intake_json["status"] == "done"
+
+    checklist_items = checklist_response_json["intake_checklist"]
+    assert len(checklist_items) == 2
+
+    checklist_item_1 = checklist_items[0]["checklist_item"]
+    assert checklist_item_1["doc_kind"] == classified_document_1["doc_kind"]
+    assert checklist_item_1["status"] == "extracted"
+    assert "created_at" in checklist_item_1
+
+    checklist_item_2 = checklist_items[1]["checklist_item"]
+    assert checklist_item_2["doc_kind"] == classified_document_2["doc_kind"]
+    assert checklist_item_2["status"] == "extracted"
+    assert "created_at" in checklist_item_2
