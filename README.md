@@ -4,14 +4,14 @@
 
 ## Project Overview
 
-RPG-Mini is end-to-end backend framework designed to support accounting professionals who manage numerous clients and document intakes. The system automates repetitive administrative tasks, such as document collection, categorization, and field extraction, to allow accountants to focus on review and decision-making rather than manual data entry.
+RPG-Mini is an end-to-end backend framework designed to support accounting professionals who manage numerous clients and document intakes. The system automates repetitive administrative tasks, such as document collection, categorization, and field extraction, to allow accountants to focus on review and decision-making rather than manual data entry.
 
 ## Key Features
 
 - **Client & Intake Management:** Manage clients by complexity and create separate intakes for each fiscal year to maintain organized tracking.  
 - **Smart Document Uploads:** Upload multiple files that are automatically validated, stored, and linked to the correct client intake.  
 - **Automated Document Classification:** Identify document types using OCR and keyword-based detection to eliminate manual sorting and accelerate intake verification.  
-- **Data Fields Extraction:** Extract information from scanned or photographed documents into structured data fields in the database
+- **Data Fields Extraction:** Extract information from scanned or photographed documents into structured data fields in the database.
 - **Dynamic Checklist Tracking:** Automatically update intake and checklist statuses as documents are classified and extracted.
 - **Batch and Single Processing:** Run classification or extraction on all intake documents at once or handle them individually for precise control.  
 
@@ -21,7 +21,7 @@ The architecture follows a linear workflow: Client -> Intake -> Document Upload 
 
 ### 1. Client Creation
 **Endpoint:** `POST /clients/`  
-A client is created with basic information (name, email) and a complexity level (simple, average, complex). The complexity determines the number and types of expected documents for all future intakes and is permanent once set. For example, a “simple” client only requires a T4 and id, while a “complex” client also requires 5 receipts.
+A client is created with basic information (name, email) and a complexity level (simple, average, complex). The complexity determines the number and types of expected documents for all future intakes and is permanent once set. For example, a "simple" client only requires a T4 and id, while a "complex" client also requires 5 receipts.
 
 ### 2. Intake Creation
 **Endpoint:** `POST /intakes/`  
@@ -36,14 +36,14 @@ Documents can be uploaded in PDF, JPG, or PNG formats. Each file is validated, s
 Batch: `POST /intakes/{intake_id}/classify`  
 Single: `POST /documents/{document_id}/classify`
 <br>
-RPG-Mini reads the text using OCR (PyMuPDF + pytesseract) and applies rule-based logic for keyword matching. The algorithm first attempts to classify based on the filename. If this initial attempt is not successful, the document's content is then extracted using OCR and scanned for keywords. The document is ultimately classified as one of the known types (T4, receipt, or ID), or marked as unknown if neither layer provides a match. This two-step process ensures both efficiency for clearly named files and robustness for files that require content-based inspection.
+RPG-Mini reads text using OCR (PyMuPDF + pytesseract) and applies rule-based logic for keyword matching. The algorithm first attempts to classify based on the filename. If this initial attempt is not successful, the document's content is then extracted using OCR and scanned for keywords. The document is ultimately classified as one of the known types (T4, receipt, or ID), or marked as unknown if neither layer provides a match. This two-step process ensures both efficiency for clearly named files and robustness for files that require content-based inspection.
 
 ### 5. Data Extraction
 **Endpoints:**  
 Batch: `POST /intakes/{intake_id}/extract`  
 Single: `POST /documents/{document_id}/extract`
 <br>
-After classification, the program performs data extraction. OCR text is fed into a lightweight LLM (e.g., `ollama` running `gemma3`) with customized prompts to identify structured fields such as names, dates, income amounts, and employer details.  The extracted values are saved to the database for reporting or export to accounting software. This step converts unstructured data (like a scanned T4) into structured, machine-readable form (JSON).
+After classification, the program performs data extraction. OCR text is fed into a lightweight LLM (currently gemma3) with customized prompts to identify structured fields such as names, dates, income amounts, and employer details. The extracted values are saved to the database for reporting or export to accounting software. This step converts unstructured data (like a scanned T4) into structured, machine-readable form (JSON).
 
 ### 6. Checklist Management and Intake Completion
 **Endpoint:** `GET /intakes/{intake_id}/checklist`  
@@ -140,11 +140,10 @@ http://localhost:8000/docs
 ```bash
 pytest -v
 ```
+
 ## Future Improvements
-- **Enhanced Document Classification** - Integrate machine learning models for more accurate classification beyond keyword and filename rules.  
-- **Advanced Data Extraction** - Expand LLM capabilities to handle additional fields, multiple document types, and cross-document consistency checks.  
-- **User Authentication & Roles** - Add role-based access for clients, staff, and admins with secure authentication and authorization.  
-- **Web-based Frontend** – Develop a React or Vue.js interface for intuitive document uploads, checklist tracking, and reporting.  
-- **Cloud Storage Integration** - Support cloud storage backends for scalable document storage.  
-- **Notification System** - Implement automated email notifications for intake progress, missing documents, or errors.  
-- **Automated Testing & CI/CD** - Expand test coverage and integrate continuous deployment pipelines for faster iteration.
+- **ML Document Classification/Extraction** - Integrate machine learning models for more precise classification and extraction (maybe using LayoutLM, transformers or Donut).  
+- **User Authentication/Authorization** - Add role-based access for clients/staff/admins with secure authentication and authorization.  
+- **Web-based Frontend** – Build a Vue.js interface for management of client/intake creation, document uploads, classification/extraction processes, and status checking with a nice UI.  
+- **Cloud Storage Integration** - Connect a cloud storage service for scalable backend document/data storage.  
+- **Isolated Testing Pipeline** - Create a dedicated test database and continuous integration pipeline for unit and integration testing.
